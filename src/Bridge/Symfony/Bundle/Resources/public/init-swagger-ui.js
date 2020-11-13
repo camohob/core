@@ -54,6 +54,7 @@ window.onload = function() {
             SwaggerUIBundle.plugins.DownloadUrl,
         ],
         layout: 'StandaloneLayout',
+        deepLinking: true,
     });
 
     if (data.oauth.enabled) {
