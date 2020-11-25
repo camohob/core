@@ -201,6 +201,7 @@ final class Configuration implements ConfigurationInterface
         $this->addMercureSection($rootNode);
         $this->addMessengerSection($rootNode);
         $this->addElasticsearchSection($rootNode);
+        $this->addOpenApiSection($rootNode);
 
         $this->addExceptionToStatusSection($rootNode);
 
@@ -318,7 +319,7 @@ final class Configuration implements ConfigurationInterface
                                 })
                             ->end()
                             ->validate()
-                                ->ifTrue(function ($v) use ($defaultVersions) {
+                                ->ifTrue(static function ($v) use ($defaultVersions) {
                                     return $v !== array_intersect($v, $defaultVersions);
                                 })
                                 ->thenInvalid(sprintf('Only the versions %s are supported. Got %s.', implode(' and ', $defaultVersions), '%s'))
@@ -388,7 +389,7 @@ final class Configuration implements ConfigurationInterface
                                 ->variableNode('request_options')
                                     ->defaultValue([])
                                     ->validate()
-                                        ->ifTrue(function ($v) { return false === \is_array($v); })
+                                        ->ifTrue(static function ($v) { return false === \is_array($v); })
                                         ->thenInvalid('The request_options parameter must be an array.')
                                     ->end()
                                     ->info('To pass options to the client charged with the request.')
@@ -467,6 +468,34 @@ final class Configuration implements ConfigurationInterface
             ->end();
     }
 
+    private function addOpenApiSection(ArrayNodeDefinition $rootNode): void
+    {
+        $rootNode
+            ->children()
+                ->arrayNode('openapi')
+                    ->addDefaultsIfNotSet()
+                        ->children()
+                        ->arrayNode('contact')
+                        ->addDefaultsIfNotSet()
+                            ->children()
+                                ->scalarNode('name')->defaultNull()->info('The identifying name of the contact person/organization.')->end()
+                                ->scalarNode('url')->defaultNull()->info('The URL pointing to the contact information. MUST be in the format of a URL.')->end()
+                                ->scalarNode('email')->defaultNull()->info('The email address of the contact person/organization. MUST be in the format of an email address.')->end()
+                            ->end()
+                        ->end()
+                        ->scalarNode('termsOfService')->defaultNull()->info('A URL to the Terms of Service for the API. MUST be in the format of a URL.')->end()
+                        ->arrayNode('license')
+                        ->addDefaultsIfNotSet()
+                            ->children()
+                                ->scalarNode('name')->defaultNull()->info('The license name used for the API.')->end()
+                                ->scalarNode('url')->defaultNull()->info('URL to the license used for the API. MUST be in the format of a URL.')->end()
+                            ->end()
+                        ->end()
+                    ->end()
+                ->end()
+            ->end();
+    }
+
     /**
      * @throws InvalidConfigurationException
      */
@@ -486,7 +515,7 @@ final class Configuration implements ConfigurationInterface
                     ->useAttributeAsKey('exception_class')
                     ->beforeNormalization()
                         ->ifArray()
-                        ->then(function (array $exceptionToStatus) {
+                        ->then(static function (array $exceptionToStatus) {
                             foreach ($exceptionToStatus as &$httpStatusCode) {
                                 if (\is_int($httpStatusCode)) {
                                     continue;
@@ -505,7 +534,7 @@ final class Configuration implements ConfigurationInterface
                     ->prototype('integer')->end()
                     ->validate()
                         ->ifArray()
-                        ->then(function (array $exceptionToStatus) {
+                        ->then(static function (array $exceptionToStatus) {
                             foreach ($exceptionToStatus as $httpStatusCode) {
                                 if ($httpStatusCode < 100 || $httpStatusCode >= 600) {
                                     throw new InvalidConfigurationException(sprintf('The HTTP status code "%s" is not valid.', $httpStatusCode));
@@ -530,7 +559,7 @@ final class Configuration implements ConfigurationInterface
                     ->useAttributeAsKey('format')
                     ->beforeNormalization()
                         ->ifArray()
-                        ->then(function ($v) {
+                        ->then(static function ($v) {
                             foreach ($v as $format => $value) {
                                 if (isset($value['mime_types'])) {
                                     continue;
